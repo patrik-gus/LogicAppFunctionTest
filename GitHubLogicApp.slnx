@@ -1,0 +1,6 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/GitHubApi/GitHubApi.csproj" />
+    <Project Path="src/GitHubFunctions/GitHubFunctions.csproj" />
+  </Folder>
+</Solution>

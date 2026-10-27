@@ -1,0 +1,6 @@
+bin/
+obj/
+.vs/
+*.user
+src/GitHubFunctions/local.settings.json
+src/GitHubApi/appsettings.Development.json

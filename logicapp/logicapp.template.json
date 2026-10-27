@@ -1,0 +1,72 @@
+{
+  "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+  "contentVersion": "1.0.0.0",
+  "parameters": {
+    "logicAppName": { "type": "string", "defaultValue": "github-logicapp" },
+    "functionAppName": { "type": "string", "metadata": { "description": "Existing Function App hosting the GitHub function." } },
+    "functionKey": { "type": "securestring", "metadata": { "description": "Function key for the GitHub function." } },
+    "location": { "type": "string", "defaultValue": "[resourceGroup().location]" }
+  },
+  "resources": [
+    {
+      "type": "Microsoft.Logic/workflows",
+      "apiVersion": "2019-05-01",
+      "name": "[parameters('logicAppName')]",
+      "location": "[parameters('location')]",
+      "properties": {
+        "state": "Enabled",
+        "definition": {
+          "$schema": "https://schema.management.azure.com/providers/Microsoft.Logic/schemas/2016-06-01/workflowdefinition.json#",
+          "contentVersion": "1.0.0.0",
+          "triggers": {
+            "manual": {
+              "type": "Request",
+              "kind": "Http",
+              "inputs": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "action": { "type": "string" },
+                    "owner": { "type": "string" },
+                    "repo": { "type": "string" },
+                    "title": { "type": "string" },
+                    "body": { "type": "string" }
+                  },
+                  "required": [ "action", "owner", "repo" ]
+                }
+              }
+            }
+          },
+          "actions": {
+            "CallGitHubFunction": {
+              "type": "Http",
+              "runAfter": {},
+              "inputs": {
+                "method": "POST",
+                "uri": "[concat('https://', parameters('functionAppName'), '.azurewebsites.net/api/github')]",
+                "headers": {
+                  "Content-Type": "application/json",
+                  "x-functions-key": "[parameters('functionKey')]"
+                },
+                "body": "@triggerBody()"
+              }
+            },
+            "Response": {
+              "type": "Response",
+              "kind": "Http",
+              "runAfter": { "CallGitHubFunction": [ "Succeeded", "Failed" ] },
+              "inputs": {
+                "statusCode": "@outputs('CallGitHubFunction')['statusCode']",
+                "headers": { "Content-Type": "application/json" },
+                "body": "@body('CallGitHubFunction')"
+              }
+            }
+          }
+        }
+      }
+    }
+  ],
+  "outputs": {
+    "logicAppName": { "type": "string", "value": "[parameters('logicAppName')]" }
+  }
+}
